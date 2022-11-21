@@ -5,7 +5,7 @@
 
 #define ARCH0 "arch0.bin"
 #define TAM_MAX 1000 /**cantidad de caracteres maximo del texto que se ingresa por usuario**/
-#define TAM_DIC 10000 /**cantidad de palabras que se pueden guardar en el dic*/
+#define TAM_DIC 10000 /**cantidad de palabras que se pueden guardar en el dic**/
 
 typedef struct {
   char palabra[20];
