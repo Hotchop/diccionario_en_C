@@ -14,6 +14,22 @@ typedef struct {
   int pos; //incrementa palabra por palabra, y no letra por letra
 }termino;
 
+typedef struct nodoT    ///Estructura de Ocurrencias
+{
+    int idDOC;
+    int pos;
+    struct nodoT* sig;
+}nodoT;
+
+typedef struct nodoA    ///Estructura Arbol Buscador
+{
+    char palabra[20];
+    int frecuencia;
+    nodoT* ocurrencias;
+    struct nodoA* der;
+    struct nodoA* izq;
+}nodoA;
+
 void crearArchivo()
 {
     FILE* pfile = fopen(ARCH0, "wb");
@@ -177,9 +193,130 @@ void mostrarArchivoDic()
     }
 }
 
+///Operaciones
+
+nodoT* creaNodoOcurrencia(termino dato) ///Crea un nuevo nodo de ocurrencias para una palabra en el buscador
+{
+    nodoT* nuevo = (nodoT*)malloc(sizeof(nodoT));
+    nuevo->idDOC = dato.idDOC;
+    nuevo->pos = dato.pos;
+    nuevo->sig = NULL;
+    return nuevo;
+}
+
+nodoA* creaNodoBuscador(termino dato)
+{
+    nodoA* nuevo = (nodoA*)malloc(sizeof(nodoA));
+    strcpy(nuevo->palabra,dato.palabra);
+    nuevo->frecuencia = 1;
+    nuevo->ocurrencias = creaNodoOcurrencia(dato);
+    nuevo->der = NULL;
+    nuevo->izq = NULL;
+    return nuevo;
+}
+
+nodoA* encuentra(nodoA* buscador,termino dato)     ///Se fija si en el buscador la palabra ya esta, y devuelve su posicion de ser asi
+{
+    nodoA* existe = NULL;
+    if(buscador)
+    {
+        if(strcmp(buscador->palabra,dato.palabra) < 0)
+        {
+            return encuentra(buscador->der,dato);
+        }
+        else
+        {
+            if(strcmp(buscador->palabra,dato.palabra) > 0)
+            {
+                return encuentra(buscador->izq,dato);
+            }
+            else
+            {
+                if(strcmp(buscador->palabra,dato.palabra) == 0)
+                {
+                    existe = buscador;
+                }
+            }
+        }
+    }
+    return existe;
+}
+
+void insertaOcurrencia(nodoT** lista,termino dato)  ///Inserta en la sublista de forma ordenada, primero por id y despues por posicion
+{
+    if(*lista == NULL || (*lista)->idDOC > dato.idDOC || ((*lista)->idDOC == dato.idDOC && (*lista)->pos > dato.pos))
+    {
+        nodoT* nuevo = creaNodoOcurrencia(dato);
+        nuevo->sig = *lista;
+        *lista = nuevo;
+    }
+    else
+    {
+       insertaOcurrencia(&(*lista)->sig,dato);
+    }
+}
+
+void insertaPalabra(nodoA** A,termino dato)     ///Inserta en el arbol buscador ordenado por orden alfabetico
+{
+    if(*A)
+    {
+        if(strcmp((*A)->palabra,dato.palabra) < 0)
+        {
+            insertaPalabra(&(*A)->der,dato);
+        }
+        else
+        {
+            insertaPalabra(&(*A)->izq,dato);
+        }
+    }
+    else
+    {
+        *A = creaNodoBuscador(dato);
+    }
+}
+
+void cargaBuscador(nodoA** A,termino dato) ///Busca si la palabra ya esta en el buscador. Si esta agrega ocurrencia y aumenta la frecuencia, sino, agrega la palabra
+{
+    nodoA* existe = encuentra(*A,dato);
+    if(existe != NULL)
+    {
+        insertaOcurrencia(&(existe->ocurrencias),dato);
+        existe->frecuencia++;
+    }
+    else
+    {
+        insertaPalabra(A,dato);
+    }
+}
+
+void diccionarioToBuscador(nodoA** A)   ///Lee el diccionario y va cargando sus datos al buscador
+{
+    FILE* arch = fopen("diccionario.bin","rb");
+    termino dato;
+    if(arch)
+    {
+        while(fread(&dato,sizeof(termino),1,arch) > 0)
+        {
+            cargaBuscador(A,dato);
+        }
+    }
+    fclose(arch);
+}
+
+void inorder(nodoA* A)
+{
+    if(A)
+    {
+        inorder(A->izq);
+        printf("%s - %i \n",A->palabra,A->frecuencia);
+        inorder(A->der);
+    }
+}
+
 int main()
 {
     termino diccionario[TAM_DIC];
+    nodoA* buscador = NULL;
     int validosDiccionario = 0;
 
     crearArchivo();
@@ -188,6 +325,10 @@ int main()
 
     printf("\nArchivo Dic:\n");
     mostrarArchivoDic();
+
+    diccionarioToBuscador(&buscador);
+
+    inorder(buscador);
 
     return 0;
 }
