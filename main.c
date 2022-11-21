@@ -4,6 +4,7 @@
 #include <ctype.h>
 
 #define ARCH0 "arch0.bin"
+#define ARCH_DIC "diccionario.bin"
 #define TAM_MAX 1000 /**cantidad de caracteres maximo del texto que se ingresa por usuario**/
 #define TAM_DIC 10000 /**cantidad de palabras que se pueden guardar en el dic**/
 
@@ -91,6 +92,25 @@ void copiarTermino(termino* t, char p[], int p_id, int p_pos)
     t->idDOC = p_id;
 }
 
+void arregloToArchivoDic(termino dic[], int v)
+{
+    FILE* pfile = fopen(ARCH_DIC, "wb");
+    int i = 0;
+
+    if( pfile )
+    {
+        while( i < v )
+        {
+            fwrite(&dic[i], sizeof(dic[i]), 1, pfile);
+
+            i++;
+        }
+
+        fclose(pfile);
+    }
+
+}
+
 void archivoToDic(termino dic[], int* v)
 {
     FILE* pfile = fopen(ARCH0,"rb");
@@ -138,6 +158,23 @@ void archivoToDic(termino dic[], int* v)
         fclose(pfile);
     }
 
+    arregloToArchivoDic(dic, (*v));
+}
+
+void mostrarArchivoDic()
+{
+    FILE* pfile = fopen(ARCH_DIC,"rb");
+    termino t;
+
+    if( pfile )
+    {
+        while( fread(&t,sizeof(termino),1,pfile) > 0 )
+        {
+            mostrarUnTermino(t);
+        }
+
+        fclose(pfile);
+    }
 }
 
 int main()
@@ -149,10 +186,8 @@ int main()
 
     archivoToDic(diccionario, &validosDiccionario);
 
-    printf("\nDiccionario\n");
-    mostrarDic(diccionario, validosDiccionario);
-
-    system("pause");
+    printf("\nArchivo Dic:\n");
+    mostrarArchivoDic();
 
     return 0;
 }
