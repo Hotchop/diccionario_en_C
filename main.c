@@ -30,6 +30,13 @@ typedef struct nodoA    ///Estructura Arbol Buscador
     struct nodoA* izq;
 }nodoA;
 
+typedef struct    ///Frecuencia de termino en un doc especifico
+{
+    char palabra[20];
+    int frecuencia;
+
+}frecuenciaArchivo;
+
 void crearArchivo()
 {
     FILE* pfile = fopen(ARCH0, "wb");
@@ -313,6 +320,215 @@ void inorder(nodoA* A)
     }
 }
 
+///OP 5
+
+int cuentaID(nodoT* lista,int idDOC)    ///Cuenta todas las ocurrencias del termino en un idDOC especifico
+{
+    int existe = 0;
+    while(lista && lista->idDOC > idDOC)
+    {
+        lista = lista->sig;
+    }
+    while(lista && lista->idDOC == idDOC)
+    {
+        existe++;
+        lista = lista->sig;
+    }
+    return existe;
+}
+
+
+frecuenciaArchivo maxfrecuencia(nodoA* A,int idDOC)   ///Regresa el valor del termino con mas frecuencia en un doc
+{
+    frecuenciaArchivo aux,max1,max2;
+    strcpy(aux.palabra,"");
+    aux.frecuencia = -1;
+    if(A)
+    {
+        int existe = cuentaID(A->ocurrencias,idDOC);
+        if(existe != 0)
+        {
+            strcpy(aux.palabra,A->palabra);
+            aux.frecuencia = existe;
+            if(A->der != NULL)
+            {
+                max1 = maxfrecuencia(A->der,idDOC);
+                if(aux.frecuencia > max1.frecuencia)
+                {
+                    max1 = aux;
+                }
+            }
+            else
+            {
+                max1 = aux;
+            }
+            if(A->izq != NULL)
+            {
+                max2 = maxfrecuencia(A->izq,idDOC);
+                if(aux.frecuencia > max2.frecuencia)
+                {
+                    max2 = aux;
+                }
+            }
+            else
+            {
+                max2 = aux;
+            }
+            if(max1.frecuencia >= max2.frecuencia)
+            {
+                return max1;
+            }
+            else
+            {
+                return max2;
+            }
+        }
+        else
+        {
+            max1 = maxfrecuencia(A->der,idDOC);
+            max2 = maxfrecuencia(A->izq,idDOC);
+            if(max1.frecuencia > max2.frecuencia)
+            {
+                return max1;
+            }
+            else
+            {
+                return max2;
+            }
+        }
+    }
+    else
+    {
+        return aux;
+    }
+}
+
+
+void frecuenciaPorDoc(nodoA* A) ///Funcion principal, muestra el termino mas frecuente en el doc, o error si no existe el id
+{
+    int idDOC;
+    printf("Ingrese id del documento\n");
+    scanf("%i",&idDOC);
+    frecuenciaArchivo resultado = maxfrecuencia(A,idDOC);
+    if(resultado.frecuencia > 0)
+    {
+        printf("La palabra mas frecuente en el documento %i es [ %s ] (f = %i)\n",idDOC,resultado.palabra,resultado.frecuencia);
+    }
+    else
+    {
+        printf("El documento no existe\n");
+    }
+}
+
+///OP 6
+int min(int a,int b)    ///Compara el minimo de dos valores
+{
+   if (a < b )
+       return a;
+   else
+      return b;
+}
+
+int Levenshtein(char *s1,char *s2)  ///Devuelve un valor de a cuanta distancia estan dos terminos
+{
+    int t1,t2,i,j,*m,costo,res,ancho;
+
+// Calcula tamanios strings
+    t1=strlen(s1);
+    t2=strlen(s2);
+
+// Verifica que exista algo que comparar
+    if (t1==0) return(t2);
+    if (t2==0) return(t1);
+    ancho=t1+1;
+
+// Reserva matriz con malloc                     m[i,j] = m[j*ancho+i] !!
+    m=(int*)malloc(sizeof(int)*(t1+1)*(t2+1));
+    if (m==NULL) return(-1); // ERROR!!
+
+// Rellena primera fila y primera columna
+    for (i=0; i<=t1; i++) m[i]=i;
+    for (j=0; j<=t2; j++) m[j*ancho]=j;
+
+// Recorremos resto de la matriz llenando pesos
+    for (i=1; i<=t1; i++) for (j=1; j<=t2; j++)
+        {
+            if (s1[i-1]==s2[j-1]) costo=0;
+            else costo=1;
+            m[j*ancho+i]=min(min(m[j*ancho+i-1]+1,     // Eliminacion
+                                       m[(j-1)*ancho+i]+1),              // Insercion
+                                m[(j-1)*ancho+i-1]+costo);
+        }      // Sustitucion
+
+// Devolvemos esquina final de la matriz
+    res=m[t2*ancho+t1];
+    free(m);
+    return(res);
+}
+
+void buscasimilar(nodoA* A,char* palabra)   ///Muestra por pantalla todas las palabras con una distancia <= 3
+{
+    if(A)
+    {
+        buscasimilar(A->izq,palabra);
+        int distancia = Levenshtein(palabra,A->palabra);
+        if(distancia <= 3 && distancia != 0)
+        {
+            printf("%s\n",A->palabra);
+        }
+        buscasimilar(A->der,palabra);
+
+    }
+}
+
+void sugerirSimilares(nodoA* A)
+{
+    char palabra[20];
+    printf("Ingrese termino\n");
+    fflush(stdin);
+    gets(palabra);
+    printf("Sugerencias de terminos similares a %s:\n",palabra);
+    buscasimilar(A,palabra);
+}
+
+///Menu
+void menu(nodoA* buscador)
+{
+    char opcion = '-';
+    while(opcion != '*')
+    {
+        printf("\n\nSeleccione operacion a realizar (Ingrese * para finalizar programa)\n");
+        printf("-------------------------------------------------------------------\n\n");
+        printf("[A] - Muestra todos los terminos y sus frecuencias\n");
+        printf("[1] - \n");
+        printf("[2] - \n");
+        printf("[3] - \n");
+        printf("[4] - \n");
+        printf("[5] - Muestra termino mas frecuente de un archivo\n");
+        printf("[6] - Sugerencias de terminos similares\n");
+        fflush(stdin);
+        scanf("%c",&opcion);
+        switch (opcion)
+        {
+            case 'A':inorder(buscador);
+                break;
+            case '1':;
+                break;
+            case '2':;
+                break;
+            case '3':;
+                break;
+            case '4':;
+                break;
+            case '5':frecuenciaPorDoc(buscador);
+                break;
+            case '6':sugerirSimilares(buscador);
+                break;
+        }
+    }
+}
+
+
 int main()
 {
     termino diccionario[TAM_DIC];
@@ -328,7 +544,7 @@ int main()
 
     diccionarioToBuscador(&buscador);
 
-    inorder(buscador);
+    menu(buscador);
 
     return 0;
 }
