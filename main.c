@@ -3,10 +3,11 @@
 #include <string.h>
 #include <ctype.h>
 
-#define ARCH0 "arch0.bin"
 #define ARCH_DIC "diccionario.bin"
-#define TAM_MAX 1000 /**cantidad de caracteres maximo del texto que se ingresa por usuario**/
+#define ARCH_DEFAULT "arch%i.bin"
+#define TAM_MAX 10000 /**cantidad de caracteres maximo del texto que se ingresa por usuario**/
 #define TAM_DIC 10000 /**cantidad de palabras que se pueden guardar en el dic**/
+#define FIL 10
 
 typedef struct {
   char palabra[20];
@@ -37,45 +38,57 @@ typedef struct    ///Frecuencia de termino en un doc especifico
 
 }frecuenciaArchivo;
 
-void crearArchivo()
+void crearArchivos(int cantArch)
 {
-    FILE* pfile = fopen(ARCH0, "wb");
-    char aux[TAM_MAX];
-    char* texto = NULL;
+    int i = 0;
+    char nombreArch[20];
 
-    if( pfile )
+    while( i < cantArch )
     {
-        printf("\nIngrese el texto:\n");
-        fflush(stdin);
-        gets(aux);
+        snprintf(nombreArch,20,ARCH_DEFAULT,i);
 
-        /**poner + 1 para que guarde el punto final en el texto tambien*/
-        texto = (char*) malloc( sizeof(char) *strlen(aux) + 1);
+        FILE* pfile = fopen(nombreArch, "wb");
+        char texto[TAM_MAX] = { 0 };
 
-        strcpy(texto,aux);
+        if( pfile )
+        {
+            printf("\nIngrese el texto %i para el archivo de nombre %s >>\n\n",i,nombreArch);
+            fflush(stdin);
+            gets(texto);
 
-        fwrite(&texto,sizeof(texto),1,pfile);
+            fwrite(&texto,sizeof(char)* strlen(texto),1,pfile);
 
-        fclose(pfile);
+            fclose(pfile);
+        }
+
+        i++;
     }
 }
 
-void mostrarArchivo()
+
+void mostrarArchivos(int cantArch)
 {
-    FILE* pfile = fopen(ARCH0, "rb");
-    char* texto = NULL;
+    int i = 0;
+    char nombreArch[20];
 
-    if( pfile )
+    while( i < cantArch )
     {
-        int tam = ftell(pfile);
+        snprintf(nombreArch,20,ARCH_DEFAULT,i);
+        FILE* pfile = fopen(nombreArch, "rb");
+        char texto[TAM_MAX] = { 0 };
 
-        texto = (char*) malloc ( sizeof(tam) );
+        printf("\nContenido del archivo: %s\n",nombreArch);
 
-        fread(&texto, sizeof(texto),1,pfile);
+        if( pfile )
+        {
+            fread(&texto, sizeof(texto),1,pfile);
 
-        puts(texto);
+            puts(texto);
 
-        fclose(pfile);
+            fclose(pfile);
+        }
+
+        i++;
     }
 }
 
@@ -108,11 +121,20 @@ void mostrarDic(termino dic[],int v)
     }
 }
 
-void copiarTermino(termino* t, char p[], int p_id, int p_pos)
+void insertarTermino(termino d[],int* v, char p[], int p_id, int p_pos)
 {
-    strcpy(t->palabra, p);
-    t->pos = p_pos;
-    t->idDOC = p_id;
+    int i = 0;
+
+    while( i < (*v) )
+    {
+        i++;
+    }
+
+    strcpy(d[i].palabra,p);
+    d[i].idDOC = p_id;
+    d[i].pos = p_pos;
+
+    (*v)++;
 }
 
 void arregloToArchivoDic(termino dic[], int v)
@@ -134,54 +156,61 @@ void arregloToArchivoDic(termino dic[], int v)
 
 }
 
-void archivoToDic(termino dic[], int* v)
+void archivoToDic(termino dic[], int* v, int cantArch)
 {
-    FILE* pfile = fopen(ARCH0,"rb");
-    char* texto = NULL;
-    int i = 0;
-    int j = 0;
-    char aux[20];
-    int posPalabra = 0;
+    int i_arch = 0;
+    char nombreArch[20];
 
-    if( pfile )
+    while( i_arch < cantArch )
     {
-        int tam = ftell(pfile);
+        snprintf(nombreArch,20,ARCH_DEFAULT,i_arch);
+        FILE* pfile = fopen(nombreArch,"rb");
+        char texto[TAM_MAX] = { 0 };
+        int i = 0;
+        int j = 0;
+        char aux[20] = { 0 };
+        int posPalabra = 0;
 
-        texto = (char*) malloc ( sizeof(tam) );
-
-        fread(&texto,sizeof(texto),1,pfile);
-
-        while( i < strlen(texto) )
+        if( pfile )
         {
-            while( isalpha(texto[i]) )
+            fread(&texto,sizeof(texto),1,pfile);
+
+            while( i < strlen(texto) )
             {
-                /*copia cada letra leida distinta de espacio a la cadena auxiliar*/
-                aux[j] = texto[i];
-                j++;
+                while( isalpha(texto[i]) )
+                {
+                    /*copia cada letra leida distinta de espacio a la cadena auxiliar*/
+                    aux[j] = texto[i];
+                    j++;
+                    i++;
+                }
+
+                /*tras salir del while, aux contiene 1 termino, los caracteres hasta
+                el primer espacio encontrado*/
+                /*en el sistema esto se va a guardar en una celda del arreglo*/
+
+                insertarTermino(dic,v,aux,i_arch,posPalabra);
+
+                posPalabra++;
+
+                /*limpiar el arreglo y volver el contador j a 0*/
+                limpiarArreglo(aux, j);
+                j = 0;
+
+
+                /*el proceso sigue con todos los terminos*/
                 i++;
             }
 
-            /*tras salir del while, aux contiene 1 termino, los caracteres hasta
-            el primer espacio encontrado*/
-            /*en el sistema esto se va a guardar en una celda del arreglo*/
-            copiarTermino(&dic[posPalabra], aux, 0, posPalabra);
-            (*v)++;
+            fclose(pfile);
 
-            posPalabra++;
-
-            /*limpiar el arreglo y volver el contador j a 0*/
-            limpiarArreglo(aux, j);
-
-            j = 0;
-
-            /*el proceso sigue con todos los terminos*/
-            i++;
         }
 
-        fclose(pfile);
+        i_arch++;
     }
 
     arregloToArchivoDic(dic, (*v));
+
 }
 
 void mostrarArchivoDic()
@@ -222,24 +251,24 @@ nodoA* creaNodoBuscador(termino dato)
     return nuevo;
 }
 
-nodoA* encuentra(nodoA* buscador,termino dato)     ///Se fija si en el buscador la palabra ya esta, y devuelve su posicion de ser asi
+nodoA* encuentra(nodoA* buscador,char* dato)     ///Se fija si en el buscador la palabra ya esta, y devuelve su posicion de ser asi
 {
     nodoA* existe = NULL;
     if(buscador)
     {
-        if(strcmp(buscador->palabra,dato.palabra) < 0)
+        if(strcmp(buscador->palabra,dato) < 0)
         {
             return encuentra(buscador->der,dato);
         }
         else
         {
-            if(strcmp(buscador->palabra,dato.palabra) > 0)
+            if(strcmp(buscador->palabra,dato) > 0)
             {
                 return encuentra(buscador->izq,dato);
             }
             else
             {
-                if(strcmp(buscador->palabra,dato.palabra) == 0)
+                if(strcmp(buscador->palabra,dato) == 0)
                 {
                     existe = buscador;
                 }
@@ -284,7 +313,7 @@ void insertaPalabra(nodoA** A,termino dato)     ///Inserta en el arbol buscador 
 
 void cargaBuscador(nodoA** A,termino dato) ///Busca si la palabra ya esta en el buscador. Si esta agrega ocurrencia y aumenta la frecuencia, sino, agrega la palabra
 {
-    nodoA* existe = encuentra(*A,dato);
+    nodoA* existe = encuentra(*A,dato.palabra);
     if(existe != NULL)
     {
         insertaOcurrencia(&(existe->ocurrencias),dato);
@@ -320,7 +349,202 @@ void inorder(nodoA* A)
     }
 }
 
-///OP 5
+void buscarPostearAparicionesPalabra(nodoA* arbol,char* palabraBuscar)
+{
+    /**punto 1**/
+
+    nodoA* rta;
+
+    rta = encuentra(arbol,palabraBuscar);
+
+    if( rta != NULL )
+    {
+        while( rta->ocurrencias != NULL )
+        {
+            printf("\nId: %i\n",rta->ocurrencias->idDOC);
+            printf("\nPos: %i\n",rta->ocurrencias->pos);
+
+            rta->ocurrencias = rta->ocurrencias->sig;
+        }
+    }
+    else
+    {
+        printf("\nNo se encuentra la palabra en ningun documento.\n");
+    }
+
+}
+
+int cargarArregloIds(int a[], int dim)
+{
+    int i = 0;
+    int num;
+    char opcion;
+
+    do
+    {
+        printf("\nIngrese el id del archivo a buscar:\n");
+        scanf("%i",&num);
+
+        a[i] = num;
+        i++;
+
+        printf("\nContinuar: enter, Salir: ctrl+z\n>> ");
+        fflush(stdin);
+    }while( (opcion = getchar()) != EOF && i < dim );
+
+    return i;
+}
+
+void mostrarArregloids(int a[], int v)
+{
+    int i = 0;
+
+    while( i < v )
+    {
+        printf("| %i ",a[i]);
+
+        i++;
+    }
+
+    printf("|\n");
+}
+
+int existePalabraEnDoc(nodoA* arbol, char* palabra, int id)
+{
+    int flag = 0;
+
+    nodoA* rta = encuentra(arbol, palabra);
+
+    if( rta != NULL )
+    {
+        nodoT* lista = rta->ocurrencias;
+
+        if( lista != NULL )
+        {
+            if( lista->idDOC == id )
+            {
+                flag = 1;
+            }
+            else
+            {
+                while( lista != NULL && lista->idDOC < id )
+                {
+                    lista = lista->sig;
+                }
+
+                if( lista != NULL && lista->idDOC == id )
+                {
+                    flag = 1;
+                }
+            }
+        }
+
+    }
+
+    return flag;
+}
+
+void buscarAparicionesAND(nodoA* arbol, char* palabra, int cantArch)
+{
+    /**punto 2 */
+    int arregloIds[cantArch];
+    int validosIds = cargarArregloIds(arregloIds,cantArch);
+    int i = 0;
+    int flag = 1; /**se asegura que esté en todos los docs(doc1 and doc2 and docN)*/
+
+    printf("\nSe buscara la palabra %s en los docs: ",palabra);
+    mostrarArregloids(arregloIds,validosIds);
+
+    while( i < validosIds && flag == 1 )
+    {
+        int existePalabra = existePalabraEnDoc(arbol,palabra,i);
+
+        if( !existePalabra ) /**si no existe en algun documento el and es falso*/
+        {
+            flag = 0;
+        }
+
+        i++;
+    }
+
+    if( flag == 1 )
+    {
+        /**printear todas las apariciones**/
+        printf("\nLa palabra %s esta en todos los documentos y el 'and' es verdadero.\n",palabra);
+        buscarPostearAparicionesPalabra(arbol, palabra);
+    }
+    else
+    {
+        printf("\nLa palabra %s NO esta en todos los documentos y el 'and' es falso.\n",palabra);
+    }
+
+}
+
+int ingresarTerminosUsuario(int fil,int col, char t[][col])
+{
+    int i = 0;
+    char opcion;
+
+    do
+    {
+        printf("\nIngrese el termino %i >> ",i);
+        fflush(stdin);
+        scanf("%s",&t[i]);
+        i++;
+
+        printf("\nContinuar: enter, Salir: ctrl+z\n>> ");
+        fflush(stdin);
+    }while( ( opcion = getchar() ) != EOF && i < fil );
+
+    return i;
+}
+
+void mostrarTerminosUsuario(int fil,int col,char t[][col], int v)
+{
+    int i = 0;
+
+    while( i < v )
+    {
+        printf("- %s \n", t[i]);
+        i++;
+    }
+}
+
+void buscarTerminosMismoDocumento(nodoA* arbol, int cantArch)
+{
+    char terminosBuscar[FIL][20]; /**se pueden ingresar max de FIL(10) palabras de 20 caracteres max**/
+    int validosTerminos = 0;
+    int i = 0;
+    int existePalabra = 0;
+    int idBuscar;
+
+    validosTerminos = ingresarTerminosUsuario(FIL,20,terminosBuscar);
+
+    printf("\nIngrese el id del documento a realizar la busqueda >> ");
+    scanf("%i",&idBuscar);
+
+    printf("\nTerminos a buscar en el doc %i:\n",idBuscar);
+    mostrarTerminosUsuario(FIL, 20, terminosBuscar, validosTerminos);
+
+    while( i < validosTerminos )
+    {
+        nodoA* aux = arbol;
+        existePalabra = existePalabraEnDoc(aux, terminosBuscar[i], idBuscar);
+
+        if( existePalabra )
+        {
+            printf("\nLa palabra %s esta en el doc %i.\n",terminosBuscar[i],idBuscar);
+            buscarPostearAparicionesPalabra(arbol,terminosBuscar[i]);
+        }
+        else
+        {
+            printf("\nLa palabra %s NO esta en el doc %i.\n",terminosBuscar[i],idBuscar);
+        }
+
+        i++;
+    }
+
+}
 
 int cuentaID(nodoT* lista,int idDOC)    ///Cuenta todas las ocurrencias del termino en un idDOC especifico
 {
@@ -528,21 +752,44 @@ void menu(nodoA* buscador)
     }
 }
 
-
 int main()
 {
     termino diccionario[TAM_DIC];
     nodoA* buscador = NULL;
     int validosDiccionario = 0;
+    int cantArch;
+    char palabraBuscar[20] = { 0 };
 
-    crearArchivo();
+    printf("\nIngrese la cantidad de archivos a crear >> ");
+    scanf("%i",&cantArch);
 
-    archivoToDic(diccionario, &validosDiccionario);
+    crearArchivos(cantArch);
+
+    mostrarArchivos(cantArch);
+
+    archivoToDic(diccionario, &validosDiccionario, cantArch);
 
     printf("\nArchivo Dic:\n");
     mostrarArchivoDic();
 
     diccionarioToBuscador(&buscador);
+
+    printf("\nArbol buscador\n");
+    inorder(buscador);
+
+    printf("\nIngrese la palabra a buscar (operacion or) >> ");
+    fflush(stdin);
+    gets(palabraBuscar);
+
+    buscarPostearAparicionesPalabra(buscador, palabraBuscar);
+
+    printf("\nIngrese la palabra a buscar (operacion and) >> ");
+    fflush(stdin);
+    gets(palabraBuscar);
+
+    buscarAparicionesAND(buscador,palabraBuscar,cantArch);
+
+    buscarTerminosMismoDocumento(buscador, cantArch);
 
     menu(buscador);
 
