@@ -1,7 +1,8 @@
 # depslib dependency file v1.0
-1669217077 source:c:\users\santi\documents\github\tpbuscador\main.c
+1669333076 source:c:\users\santi\documents\github\tpbuscador\main.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
 	<ctype.h>
+	<windows.h>
 

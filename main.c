@@ -84,6 +84,14 @@ int ingresarTerminosUsuario(int fil,int col, char t[][col]);
 void mostrarTerminosUsuario(int fil,int col,char t[][col], int v);
 void buscarTerminosMismoDocumento(nodoA* arbol, int cantArch);
 
+/**punto 4**/
+nodoP* creaNodoPalabra(char* aux);
+void palabraToLista(nodoP** lista,char* aux);
+void separaFrase(nodoP** lista,char* texto);
+int comparaPalabras(nodoA* A,nodoP** lista);
+nodoP* existeFrase(nodoA* A,nodoP* lista);
+void buscaFrase(nodoA* A);
+
 /**punto 5**/
 int cuentaID(nodoT* lista,int idDOC);
 frecuenciaArchivo maxfrecuencia(nodoA* A,int idDOC);
@@ -1137,6 +1145,11 @@ int main()
     SetConsoleTitle("Trabajo Practico Buscador");
 
     menu(buscador);
+
+    static TCHAR szAppName[] = TEXT("DIC");
+
+   MessageBox(NULL, TEXT("Gracias por usar el DIC !"),
+          szAppName, MB_ICONWARNING);
 
     return 0;
 }
