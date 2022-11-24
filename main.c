@@ -692,28 +692,24 @@ void separaFrase(nodoP** lista,char* texto)
 int comparaPalabras(nodoA* A,nodoP** lista)
 {
     int resultado = 0;
-    if((*lista)->sig != NULL)   ///Si no estoy en la ultima palabra de la frase
+    if((*lista)->sig != NULL)   /*Si no estoy en la ultima palabra de la frase*/
     {
         nodoA* existe = encuentra(A,(*lista)->sig->dato.palabra);
-        if(existe != NULL)                                          ///Si la palabra siguente en la lista en el buscador
+        if(existe != NULL)                                          /*Si la palabra siguente en la lista en el buscador*/
         {
             nodoT* ocurrencias = existe->ocurrencias;
-            while(ocurrencias != NULL && ocurrencias->idDOC < (*lista)->dato.idDOC) ///Revisa si el idDOC de la palabra esta en la siguiente
+
+            /* Comprueba de no estar al final y que la palabra sea continua en el mismo documento*/
+            while((ocurrencias != NULL && ocurrencias->idDOC < (*lista)->dato.idDOC) || (ocurrencias != NULL && ocurrencias->idDOC == (*lista)->dato.idDOC && ocurrencias->pos < (((*lista)->dato.pos) + 1)))
             {
                 ocurrencias = ocurrencias->sig;
             }
-            if(ocurrencias != NULL && ocurrencias->idDOC == (*lista)->dato.idDOC)   ///Si lo encuentra
+            /*Si se cumple, estan continuas y llama recursivamente*/
+            if(ocurrencias != NULL && ocurrencias->pos == (((*lista)->dato.pos) + 1))
             {
-                while(ocurrencias != NULL && ocurrencias->pos < (((*lista)->dato.pos) + 1)) ///Revisa si esta la posicion siguiente a la suya
-                {
-                    ocurrencias = ocurrencias->sig;
-                }
-                if(ocurrencias != NULL && ocurrencias->pos == (((*lista)->dato.pos) + 1))   ///Si se cumple, estan continuas y llama recursivamente
-                {
-                    (*lista)->sig->dato.idDOC = ocurrencias->idDOC;
-                    (*lista)->sig->dato.pos = ocurrencias->pos;
-                    resultado = comparaPalabras(A,&(*lista)->sig);
-                }
+                (*lista)->sig->dato.idDOC = ocurrencias->idDOC;
+                (*lista)->sig->dato.pos = ocurrencias->pos;
+                resultado = comparaPalabras(A,&(*lista)->sig);
             }
         }
     }
