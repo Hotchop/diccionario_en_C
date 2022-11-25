@@ -587,10 +587,10 @@ int ingresarTerminosUsuario(int fil,int col, char t[][col])
         scanf("%s",&t[i]);
         i++;
 
-        printf("\nContinuar: enter, Salir: ctrl+z\n>> ");
+        printf("\nContinuar: enter, Salir: *\n>> ");
         fflush(stdin);
     }
-    while( ( opcion = getchar() ) != EOF && i < fil );
+    while( ( opcion = getchar() ) != '*' && i < fil );
 
     return i;
 }
@@ -624,7 +624,7 @@ void buscarTerminosMismoDocumento(nodoA* arbol, int cantArch)
     printf("\nTerminos a buscar en el doc %i:\n",idBuscar);
     mostrarTerminosUsuario(FIL, 20, terminosBuscar, validosTerminos);
 
-    while( i < validosTerminos )
+    while( i < validosTerminos  )
     {
         nodoA* aux = arbol;
         existePalabra = existePalabraEnDoc(aux, terminosBuscar[i], idBuscar);
@@ -1136,6 +1136,14 @@ void menu(nodoA* buscador)
     }
 }
 
+void mostrarSaludo()
+{
+    static TCHAR szAppName[] = TEXT("DIC");
+
+   MessageBox(NULL, TEXT("Gracias por usar el DIC !"),
+          szAppName, MB_ICONWARNING);
+}
+
 int main()
 {
     nodoA* buscador = NULL;
@@ -1146,10 +1154,7 @@ int main()
 
     menu(buscador);
 
-    static TCHAR szAppName[] = TEXT("DIC");
-
-   MessageBox(NULL, TEXT("Gracias por usar el DIC !"),
-          szAppName, MB_ICONWARNING);
+    mostrarSaludo();
 
     return 0;
 }
