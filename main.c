@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <windows.h>
 
+
+#define CANT_ARCH_MAX 2 /** cantidad de archivos disponibles para ser leidos, en la carpeta hay 2 txt*/
 #define ARCH_DIC "diccionario.bin"
 #define ARCH_DEFAULT "arch%i.bin"
 #define TAM_MAX 10000 /**cantidad maxima de caracteres del texto que se ingresa por usuario**/
@@ -50,7 +52,7 @@ typedef struct nodoP    ///Estructura Lista de Palabras
 /**cabeceras**/
 
 /**archivos y diccionario**/
-void crearArchivos(int cantArch);
+void cargarArchivos(int cantArch);
 void mostrarArchivos(int cantArch);
 void limpiarArreglo(char a[],int j);
 void mostrarUnTermino(termino t);
@@ -101,6 +103,7 @@ void frecuenciaPorDoc(nodoA* A);
 int minimo(int a,int b);
 int Levenshtein(char *s1,char *s2);
 void buscasimilar(nodoA* A,char* palabra);
+int buscaSimilarMenorDistancia(nodoA* A, char* palabra, char* masSimilar,int* md);
 void sugerirSimilares(nodoA* A);
 
 /**generales**/
@@ -109,31 +112,38 @@ void menu(nodoA* buscador);
 
 /**funciones archivos y diccionario**/
 
-void crearArchivos(int cantArch)
+void cargarArchivos(int cantArch)
 {
     /** crea N archivos segun se pase por parametro (cantArch)
     la carga de archivos es manual, debe ser texto sin comas ni puntos*/
 
     int i = 0;
+    char nombreArchLectura[20];
     char nombreArch[20];
+    char texto[TAM_MAX] = { 0 };
 
     while( i < cantArch )
     {
-        snprintf(nombreArch,20,ARCH_DEFAULT,i);
+        snprintf(nombreArchLectura, 20, "entrada%i.txt",i);
 
-        FILE* pfile = fopen(nombreArch, "wb");
-        char texto[TAM_MAX] = { 0 };
+        FILE* pfileLectura = fopen(nombreArchLectura,"rb");
 
-        if( pfile )
+        if( pfileLectura )
         {
-            printf("\nSe creara el archivo con id %i con el nombre %s...\n",i,nombreArch);
-            printf("\nIngrese el texto >> \n\n");
-            fflush(stdin);
-            gets(texto);
+            fread(&texto,sizeof(texto),1,pfileLectura);
 
-            fwrite(&texto,sizeof(char)* strlen(texto),1,pfile);
+            fclose(pfileLectura);
+        }
 
-            fclose(pfile);
+        snprintf(nombreArch, 20, ARCH_DEFAULT, i);
+
+        FILE* pfileEscritura = fopen(nombreArch, "wb");
+
+        if( pfileEscritura )
+        {
+            fwrite(&texto, sizeof(char) * strlen(texto), 1, pfileEscritura);
+
+            fclose(pfileEscritura);
         }
 
         i++;
@@ -924,12 +934,15 @@ int Levenshtein(char *s1,char *s2)  ///Devuelve un valor de a cuanta distancia e
     return(res);
 }
 
+
 void buscasimilar(nodoA* A,char* palabra)   ///Muestra por pantalla todas las palabras con una distancia <= 3
 {
     if(A)
     {
         buscasimilar(A->izq,palabra);
+
         int distancia = Levenshtein(palabra,A->palabra);
+
         if(distancia <= 3 && distancia != 0)
         {
             printf("%s\n",A->palabra);
@@ -939,14 +952,43 @@ void buscasimilar(nodoA* A,char* palabra)   ///Muestra por pantalla todas las pa
     }
 }
 
+int buscaSimilarMenorDistancia(nodoA* A, char* palabra, char* masSimilar,int* md)
+{
+    if(A)
+    {
+        buscaSimilarMenorDistancia(A->izq,palabra, masSimilar, md);
+
+        int distancia = Levenshtein(palabra,A->palabra);
+
+        if(distancia <= 3 && distancia != 0)
+        {
+            if( distancia < *md )
+            {
+                *md = distancia;
+                strcpy(masSimilar, A->palabra);
+            }
+        }
+
+        buscaSimilarMenorDistancia(A->der,palabra,masSimilar,md);
+
+    }
+}
+
 void sugerirSimilares(nodoA* A)
 {
     char palabra[20];
+    char masSimilar[20];
+    int menorDistancia = 3;
+
     printf("Ingrese termino\n");
     fflush(stdin);
     gets(palabra);
     printf("Sugerencias de terminos similares a %s:\n",palabra);
     buscasimilar(A,palabra);
+
+    buscaSimilarMenorDistancia(A, palabra,masSimilar,&menorDistancia);
+
+    printf("\nEl termino mas similar es %s con d = %i\n",masSimilar,menorDistancia);
 }
 
 void limpiarConsola()
@@ -969,7 +1011,7 @@ void menu(nodoA* buscador)
     {
         printf("\n\nSeleccione operacion a realizar (Ingrese * para finalizar programa)\n");
         printf("-------------------------------------------------------------------\n\n");
-        printf("[A] - Ingresar archivo/s\n");
+        printf("[A] - Cargar archivo/s de texto\n");
         printf("[B] - Mostrar archivo diccionario\n");
         printf("[C] - Muestra todos los terminos y sus frecuencias\n");
         printf("[1] - Buscar y postear ocurrencias de un termino\n");
@@ -988,12 +1030,12 @@ void menu(nodoA* buscador)
 
                 do
                 {
-                    printf("\nIngrese la cantidad de archivos a crear >> ");
+                    printf("\nIngrese la cantidad de archivos a cargar >> ");
                     fflush(stdin);
                     scanf("%i",&cantArch);
-                }while( cantArch <= 0 );
+                }while( cantArch <= 0  &&  cantArch < CANT_ARCH_MAX);
 
-                crearArchivos(cantArch);
+                cargarArchivos(cantArch);
 
                 mostrarArchivos(cantArch);
 
@@ -1136,13 +1178,6 @@ void menu(nodoA* buscador)
     }
 }
 
-void mostrarSaludo()
-{
-    static TCHAR szAppName[] = TEXT("DIC");
-
-   MessageBox(NULL, TEXT("Gracias por usar el DIC !"),
-          szAppName, MB_ICONWARNING);
-}
 
 int main()
 {
@@ -1153,8 +1188,6 @@ int main()
     SetConsoleTitle("Trabajo Practico Buscador");
 
     menu(buscador);
-
-    mostrarSaludo();
 
     return 0;
 }
